@@ -6,7 +6,7 @@
 <title>Diary Kita</title>
 <!-- PWA & Mobile Meta -->
 <meta name="theme-color" content="#e8457a">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Diary Kita">
 <!-- Firebase SDK (Compat) -->
@@ -189,7 +189,7 @@ if ('serviceWorker' in navigator) {
 let AC;
 function snd(f1,f2,dur,vol){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.connect(g);g.connect(AC.destination);o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur+.05);o.start(t);o.stop(t+dur+.06)}catch(e){}}
 const tapSnd=()=>snd(520,780,.09,.12);
-const SOUNDS={lembut:[[660,0,.35,.14,'sine',880]],ting:[[1320,0,.25,.18,'sine']],dua:[[880,0,.18,.18,'sine'],[1320,.18,.28,.16,'sine']],pop:[[300,0,.12,.2,'triangle',700]],gelembung:[[400,0,.35,.16,'sine',1000]],lonceng:[[1046,0,1.1,.16,'sine'],[2093,0,.6,.05,'sine']],tiga:[[523,0,.12,.15,'sine'],[659,.12,.12,.15,'sine'],[784,.24,.2,.15,$'sine']]};
+const SOUNDS={lembut:[[660,0,.35,.14,'sine',880]],ting:[[1320,0,.25,.18,'sine']],dua:[[880,0,.18,.18,'sine'],[1320,.18,.28,.16,'sine']],pop:[[300,0,.12,.2,'triangle',700]],gelembung:[[400,0,.35,.16,'sine',1000]],lonceng:[[1046,0,1.1,.16,'sine'],[2093,0,.6,.05,'sine']],tiga:[[523,0,.12,.15,'sine'],[659,.12,.12,.15,'sine'],[784,.24,.2,.15,'sine']]};
 const SLAB={lembut:'Lembut',ting:'Ting',dua:'Dua nada',pop:'Pop',gelembung:'Gelembung',lonceng:'Lonceng',tiga:'Tiga nada'};
 function play(name){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const t0=AC.currentTime;(SOUNDS[name]||SOUNDS.dua).forEach(([f,d0,dur,vol,type,f2])=>{const o=AC.createOscillator(),g=AC.createGain(),s=t0+d0;o.type=type;o.connect(g);g.connect(AC.destination);o.frequency.setValueAtTime(f,s);if(f2)o.frequency.exponentialRampToValueAtTime(f2,s+dur);g.gain.setValueAtTime(vol,s);g.gain.exponentialRampToValueAtTime(.001,s+dur);o.start(s);o.stop(s+dur+.05)})}catch(e){}}
 const chime=()=>play((S.set&&S.set.sound)||'dua');
@@ -568,7 +568,6 @@ function tick(){
  const d=new Date(),t=d.getHours()*60+d.getMinutes(),today=ymd(d),wd=d.getDay();
  let changed=false;
 
- // 1. Pengecekan hari spesial
  S.events.forEach(e=>{
   if(e.d!==today||!on('event'))return;
   const k='ev|'+e.id+'|'+today;
@@ -577,7 +576,6 @@ function tick(){
   notify('Hari spesial hari ini',e.t+' · '+(e.w==='kita'?'Kita':NAMES[e.w]));
  });
 
- // 2. Pengecekan jadwal kuliah/kerja selesai
  (S.sched[me][wd]||[]).forEach(c=>{
   const k=me+'|'+today+'|'+c.id,st=S.seen[k]||(S.seen[k]={});
   if(!on('class')||st.ans||t<toMin(c.e)+Number(S.set.delay))return;
@@ -586,20 +584,17 @@ function tick(){
   notify('Ada tugas hari ini?',`Jadwal ${c.n} sudah selesai. Ketuk untuk jawab.`,()=>openAsk(c.n,c.e,k));
  });
 
- // 3. Pengecekan Deadline Tugas (H-2 Jam / 30 Menit menuju deadline)
  (S.tasks[me]||[]).forEach(x=>{
   if(x.done||!x.due)return;
   const dueTime=new Date(x.due).getTime();
   const now=Date.now();
-  const diffMin=(dueTime-now)/60000; // selisih menit menuju deadline
+  const diffMin=(dueTime-now)/60000;
   
-  // Jika tersisa 120 menit (2 jam) atau kurang, dan belum lewat 24 jam
   if(diffMin<=120 && diffMin>=-1440){
    const k='taskdue|'+x.id;
    const st=S.seen[k]||(S.seen[k]={});
-   if(st.ans==='yes')return; // Jika sudah dijawab 'sudah', jangan diingatkan lagi
+   if(st.ans==='yes')return;
    
-   // Ulangi pengingat setiap 30 menit jika statusnya belum atau belum dijawab
    const repeatMin=30;
    if(st.last && now-st.last < repeatMin*60000)return;
    st.last=now;changed=true;
@@ -609,7 +604,6 @@ function tick(){
   }
  });
 
- // 4. Pengingat keuangan malam
  const nk='night|'+me+'|'+today,ns=S.seen[nk]||(S.seen[nk]={});
  if(on('night')&&!S.money[me].tx.some(x=>x.d===today)&&t>=toMin(S.set.nightTime)&&(!ns.last||Date.now()-ns.last>=S.set.repeat*60000)){
   ns.last=Date.now();changed=true;
