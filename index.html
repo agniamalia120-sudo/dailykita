@@ -153,7 +153,7 @@ const I={
 const ic=(n,w=18)=>`<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
 const mascot=w=>`<svg width="${w}" height="${w*.94}" viewBox="0 0 64 60" aria-hidden="true"><path style="fill:var(--c)" d="M32 56C12 42 4 33 4 20 4 11 11 5 19 5c5 0 9.5 3 13 7 3.5-4 8-7 13-7 8 0 15 6 15 15 0 13-8 22-28 36z"/><ellipse cx="22" cy="29" rx="2.6" ry="3.2" fill="#fff"/><ellipse cx="42" cy="29" rx="2.6" ry="3.2" fill="#fff"/><path d="M28 38q4 3.5 8 0" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="16" cy="36" r="3" fill="#fff" opacity=".45"/><circle cx="48" cy="36" r="3" fill="#fff" opacity=".45"/></svg>`;
 
-/* PWA Setup: Dynamic Manifest & Service Worker via Blob */
+/* PWA Setup */
 const svgIconData = 'data:image/svg+xml;utf8,<svg width="512" height="480" viewBox="0 0 64 60" xmlns="http://www.w3.org/2000/svg"><path style="fill:%23e8457a" d="M32 56C12 42 4 33 4 20 4 11 11 5 19 5c5 0 9.5 3 13 7 3.5-4 8-7 13-7 8 0 15 6 15 15 0 13-8 22-28 36z"/><ellipse cx="22" cy="29" rx="2.6" ry="3.2" fill="%23fff"/><ellipse cx="42" cy="29" rx="2.6" ry="3.2" fill="%23fff"/><path d="M28 38q4 3.5 8 0" stroke="%23fff" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="16" cy="36" r="3" fill="%23fff" opacity=".45"/><circle cx="48" cy="36" r="3" fill="%23fff" opacity=".45"/></svg>';
 
 const manifestObj = {
@@ -185,11 +185,11 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
 }
 
-/* suara: setiap tap dan notifikasi */
+/* suara */
 let AC;
 function snd(f1,f2,dur,vol){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.connect(g);g.connect(AC.destination);o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur+.05);o.start(t);o.stop(t+dur+.06)}catch(e){}}
 const tapSnd=()=>snd(520,780,.09,.12);
-const SOUNDS={lembut:[[660,0,.35,.14,'sine',880]],ting:[[1320,0,.25,.18,'sine']],dua:[[880,0,.18,.18,'sine'],[1320,.18,.28,.16,'sine']],pop:[[300,0,.12,.2,'triangle',700]],gelembung:[[400,0,.35,.16,'sine',1000]],lonceng:[[1046,0,1.1,.16,'sine'],[2093,0,.6,.05,'sine']],tiga:[[523,0,.12,.15,'sine'],[659,.12,.12,.15,'sine'],[784,.24,.2,.15,'sine']]};
+const SOUNDS={lembut:[[660,0,.35,.14,'sine',880]],ting:[[1320,0,.25,.18,'sine']],dua:[[880,0,.18,.18,'sine'],[1320,.18,.28,.16,'sine']],pop:[[300,0,.12,.2,'triangle',700]],gelembung:[[400,0,.35,.16,'sine',1000]],lonceng:[[1046,0,1.1,.16,'sine'],[2093,0,.6,.05,'sine']],tiga:[[523,0,.12,.15,'sine'],[659,.12,.12,.15,'sine'],[784,.24,.2,.15,$'sine']]};
 const SLAB={lembut:'Lembut',ting:'Ting',dua:'Dua nada',pop:'Pop',gelembung:'Gelembung',lonceng:'Lonceng',tiga:'Tiga nada'};
 function play(name){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const t0=AC.currentTime;(SOUNDS[name]||SOUNDS.dua).forEach(([f,d0,dur,vol,type,f2])=>{const o=AC.createOscillator(),g=AC.createGain(),s=t0+d0;o.type=type;o.connect(g);g.connect(AC.destination);o.frequency.setValueAtTime(f,s);if(f2)o.frequency.exponentialRampToValueAtTime(f2,s+dur);g.gain.setValueAtTime(vol,s);g.gain.exponentialRampToValueAtTime(.001,s+dur);o.start(s);o.stop(s+dur+.05)})}catch(e){}}
 const chime=()=>play((S.set&&S.set.sound)||'dua');
@@ -209,7 +209,6 @@ function push(path,body){
  const b=JSON.parse(JSON.stringify(body));
  Q[path]=(Q[path]||Promise.resolve()).then(()=>DB.doc(path).set(b)).catch(e=>toast('Gagal menyimpan ('+(e.code||'coba lagi')+')'));
 }
-// DIPERBAIKI: Foto sekarang ikut disimpan di cache lokal HP agar tidak hilang saat refresh
 function cache(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function save(){cache();push('app/'+me,userDoc())}
 function saveShared(){cache();push('app/shared',{wish:S.wish,todo:S.todo,events:S.events})}
@@ -511,6 +510,35 @@ function answer(v){
  closeModal();
  if(v==='no')toast('Oke, pengingat jadwal ini dihentikan');
 }
+
+/* Modal status deadline tugas (Sudah / Belum) */
+function openTaskStatusModal(taskId, seenKey){
+ const x=S.tasks[me].find(y=>y.id===taskId);
+ if(!x)return;
+ modal(`<h2 style="margin:0 0 6px;color:var(--c)">Pengingat Deadline Tugas</h2>
+  <p class="muted">Tugas: <b>${esc(x.n)}</b><br>Deadline: ${x.due.replace('T',' ')}</p>
+  <p>Apakah tugas ini sudah dikerjakan?</p>
+  <div class="row" style="margin-top:12px">
+   <button class="ghost" onclick="answerTaskStatus('${taskId}','${seenKey}','no')">Belum</button>
+   <button onclick="answerTaskStatus('${taskId}','${seenKey}','yes')">Sudah</button>
+  </div>`);
+}
+function answerTaskStatus(taskId, seenKey, status){
+ const x=S.tasks[me].find(y=>y.id===taskId);
+ S.seen[seenKey]=S.seen[seenKey]||{};
+ S.seen[seenKey].ans=status;
+ if(status==='yes' && x){
+  x.done=true;
+  x.doneAt=ymd();
+  toast('Tugas selesai! Tidak akan diingatkan lagi.');
+ } else {
+  toast('Oke, akan diingatkan lagi setiap 30 menit.');
+ }
+ save();
+ closeModal();
+ render();
+}
+
 function askInbox(){
  const unread=(S.inbox[me]||[]).filter(x=>!x.read).length;
  if(!unread)return;
@@ -539,6 +567,8 @@ function tick(){
  if(!me)return;
  const d=new Date(),t=d.getHours()*60+d.getMinutes(),today=ymd(d),wd=d.getDay();
  let changed=false;
+
+ // 1. Pengecekan hari spesial
  S.events.forEach(e=>{
   if(e.d!==today||!on('event'))return;
   const k='ev|'+e.id+'|'+today;
@@ -546,6 +576,8 @@ function tick(){
   S.seen[k]=1;changed=true;
   notify('Hari spesial hari ini',e.t+' · '+(e.w==='kita'?'Kita':NAMES[e.w]));
  });
+
+ // 2. Pengecekan jadwal kuliah/kerja selesai
  (S.sched[me][wd]||[]).forEach(c=>{
   const k=me+'|'+today+'|'+c.id,st=S.seen[k]||(S.seen[k]={});
   if(!on('class')||st.ans||t<toMin(c.e)+Number(S.set.delay))return;
@@ -553,11 +585,37 @@ function tick(){
   st.last=Date.now();changed=true;
   notify('Ada tugas hari ini?',`Jadwal ${c.n} sudah selesai. Ketuk untuk jawab.`,()=>openAsk(c.n,c.e,k));
  });
+
+ // 3. Pengecekan Deadline Tugas (H-2 Jam / 30 Menit menuju deadline)
+ (S.tasks[me]||[]).forEach(x=>{
+  if(x.done||!x.due)return;
+  const dueTime=new Date(x.due).getTime();
+  const now=Date.now();
+  const diffMin=(dueTime-now)/60000; // selisih menit menuju deadline
+  
+  // Jika tersisa 120 menit (2 jam) atau kurang, dan belum lewat 24 jam
+  if(diffMin<=120 && diffMin>=-1440){
+   const k='taskdue|'+x.id;
+   const st=S.seen[k]||(S.seen[k]={});
+   if(st.ans==='yes')return; // Jika sudah dijawab 'sudah', jangan diingatkan lagi
+   
+   // Ulangi pengingat setiap 30 menit jika statusnya belum atau belum dijawab
+   const repeatMin=30;
+   if(st.last && now-st.last < repeatMin*60000)return;
+   st.last=now;changed=true;
+   
+   const timeInfo=diffMin>0?`Deadline dalam ${Math.round(diffMin)} menit`:'Deadline sudah tiba/terlewati!';
+   notify('Pengingat Deadline Tugas', `Tugas "${x.n}" (${x.course||'Umum'}). ${timeInfo}. Ketuk untuk cek status.`, ()=>openTaskStatusModal(x.id,k));
+  }
+ });
+
+ // 4. Pengingat keuangan malam
  const nk='night|'+me+'|'+today,ns=S.seen[nk]||(S.seen[nk]={});
  if(on('night')&&!S.money[me].tx.some(x=>x.d===today)&&t>=toMin(S.set.nightTime)&&(!ns.last||Date.now()-ns.last>=S.set.repeat*60000)){
   ns.last=Date.now();changed=true;
   notify('Catat keuanganmu','Hari ini belum ada catatan pengeluaran atau pemasukan.',()=>go('diari'));
  }
+ 
  if(changed)save();
 }
 
