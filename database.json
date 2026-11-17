@@ -1,0 +1,55 @@
+{
+  "agni": {
+    "daily": {},
+    "inbox": [],
+    "money": {
+      "tx": []
+    },
+    "sched": {},
+    "seen": {
+      "night|agni|2026-11-17": {}
+    },
+    "set": {
+      "delay": 30,
+      "nightTime": "21:00",
+      "on": {
+        "class": false
+      },
+      "repeat": 60
+    },
+    "tasks": []
+  },
+  "latif": {
+    "daily": {},
+    "inbox": [],
+    "money": {
+      "tx": []
+    },
+    "sched": {
+      "1": [
+        {
+          "e": "17:00",
+          "id": "mwknk5ipvzfs",
+          "n": "kerjaa",
+          "s": "08:00"
+        }
+      ]
+    },
+    "seen": {
+      "night|agni|2026-11-17": {},
+      "night|latif|2026-11-17": {}
+    },
+    "set": {
+      "delay": 30,
+      "nightTime": "21:00",
+      "on": {
+        "class": false
+      },
+      "repeat": 60
+    },
+    "tasks": []
+  },
+  "bersama": null,
+  "foto": {},
+  "pesan": {}
+}
