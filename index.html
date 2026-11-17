@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Diary Kita</title>
+<!-- PWA & Mobile Meta -->
+<meta name="theme-color" content="#e8457a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Diary Kita">
+<!-- Firebase SDK (Compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <style>
 [hidden]{display:none!important}
 :root{--c:#e8457a;--soft:#ffd6e5}
@@ -97,6 +105,18 @@ const DAYS=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const SHORT=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
 const ORDER=[1,2,3,4,5,6,0];
 const MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+// Konfigurasi Firebase Firestore
+const FB = {
+  apiKey: "AIzaSyD6iz7hAI0HZAmUOSVhAIaCOq3oKAIkaac",
+  authDomain: "daily-7b3ac.firebaseapp.com",
+  projectId: "daily-7b3ac",
+  storageBucket: "daily-7b3ac.appspot.com",
+  messagingSenderId: "195341156332",
+  appId: "1:195341156332:web:4322d80334853d3a62cac9",
+  measurementId: "G-31KG09S3TS"
+};
+
 const $=s=>document.querySelector(s);
 const p2=n=>String(n).padStart(2,'0');
 const ymd=(d=new Date())=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
@@ -113,7 +133,7 @@ const on=k=>!(S.set.on&&S.set.on[k]===false);
 function setSound(k){S.set.sound=k;save();render();play(k)}
 function togType(k){S.set.on={...(S.set.on||{}),[k]:!on(k)};save();render()}
 
-/* ikon gambar sendiri (SVG), bukan emoji */
+/* ikon gambar sendiri (SVG) */
 const I={
  home:'<path d="M4 11l8-6.5 8 6.5v8.5a1 1 0 0 1-1 1h-4.5v-5.5h-5v5.5H5a1 1 0 0 1-1-1z"/>',
  book:'<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H19v-3"/><path d="M12 9.2c-1-.8-2.2-.1-1.8.9.4.9 1.8 1.6 1.8 1.6s1.4-.7 1.8-1.6c.4-1-.8-1.7-1.8-.9z"/>',
@@ -133,6 +153,38 @@ const I={
 const ic=(n,w=18)=>`<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
 const mascot=w=>`<svg width="${w}" height="${w*.94}" viewBox="0 0 64 60" aria-hidden="true"><path style="fill:var(--c)" d="M32 56C12 42 4 33 4 20 4 11 11 5 19 5c5 0 9.5 3 13 7 3.5-4 8-7 13-7 8 0 15 6 15 15 0 13-8 22-28 36z"/><ellipse cx="22" cy="29" rx="2.6" ry="3.2" fill="#fff"/><ellipse cx="42" cy="29" rx="2.6" ry="3.2" fill="#fff"/><path d="M28 38q4 3.5 8 0" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="16" cy="36" r="3" fill="#fff" opacity=".45"/><circle cx="48" cy="36" r="3" fill="#fff" opacity=".45"/></svg>`;
 
+/* PWA Setup: Dynamic Manifest & Service Worker via Blob */
+const svgIconData = 'data:image/svg+xml;utf8,<svg width="512" height="480" viewBox="0 0 64 60" xmlns="http://www.w3.org/2000/svg"><path style="fill:%23e8457a" d="M32 56C12 42 4 33 4 20 4 11 11 5 19 5c5 0 9.5 3 13 7 3.5-4 8-7 13-7 8 0 15 6 15 15 0 13-8 22-28 36z"/><ellipse cx="22" cy="29" rx="2.6" ry="3.2" fill="%23fff"/><ellipse cx="42" cy="29" rx="2.6" ry="3.2" fill="%23fff"/><path d="M28 38q4 3.5 8 0" stroke="%23fff" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="16" cy="36" r="3" fill="%23fff" opacity=".45"/><circle cx="48" cy="36" r="3" fill="%23fff" opacity=".45"/></svg>';
+
+const manifestObj = {
+  name: "Diary Kita",
+  short_name: "DiaryKita",
+  start_url: "./",
+  display: "standalone",
+  background_color: "#ffd6e5",
+  theme_color: "#e8457a",
+  icons: [{ src: svgIconData, sizes: "512x512", type: "image/svg+xml" }]
+};
+const mBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+const mLink = document.createElement('link');
+mLink.rel = 'manifest';
+mLink.href = URL.createObjectURL(mBlob);
+document.head.appendChild(mLink);
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = $('#install-btn');
+  if(btn) btn.style.display = 'inline-flex';
+});
+
+if ('serviceWorker' in navigator) {
+  const swCode = `self.addEventListener('fetch', function(e) {});`;
+  const swBlob = new Blob([swCode], { type: 'application/javascript' });
+  navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+}
+
 /* suara: setiap tap dan notifikasi */
 let AC;
 function snd(f1,f2,dur,vol){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.connect(g);g.connect(AC.destination);o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur+.05);o.start(t);o.stop(t+dur+.06)}catch(e){}}
@@ -143,7 +195,6 @@ function play(name){try{AC=AC||new(window.AudioContext||window.webkitAudioContex
 const chime=()=>play((S.set&&S.set.sound)||'dua');
 document.addEventListener('click',e=>{if(e.target.closest('button,.av,.slot,.seg,.chip,.toast,select,input[type=checkbox],input[type=date],input[type=time],input[type=datetime-local],a'))tapSnd()},true);
 
-/* data: salinan lokal + data bersama di server (db) */
 function fresh(){return{wish:[],todo:[],events:[],photos:{},sched:{agni:{},latif:{}},daily:{agni:{},latif:{}},money:{agni:{tx:[]},latif:{tx:[]}},tasks:{agni:[],latif:[]},inbox:{agni:[],latif:[]},seen:{},set:{delay:30,repeat:60,nightTime:'21:00'}}}
 let S=fresh();
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY))||{})}catch(e){}
@@ -194,8 +245,12 @@ function subscribe(){
   if(mc){mc=false;save()}
  },syncErr);
 }
+
 async function initDB(){
- try{DB=await window.claude.use('db')}catch(e){DB=null}
+ try{
+   if(!firebase.apps.length) firebase.initializeApp(FB);
+   DB=firebase.firestore();
+ }catch(e){DB=null}
  if(DB&&me&&!subbed)subscribe();
 }
 
@@ -256,7 +311,7 @@ function sendMsg(){
  $('#msg').value='';
 }
 
-/* ---------- diari (akun yang sedang login) dengan sub-menu Diari dan Riwayat ---------- */
+/* ---------- diari & riwayat ---------- */
 function diariPage(){
  return `<div class="seg" style="margin-bottom:12px"><button class="${subTab==='diari'?'on':''}" onclick="setSub('diari')">Diari</button><button class="${subTab==='riwayat'?'on':''}" onclick="setSub('riwayat')">Riwayat</button></div>${subTab==='diari'?diari():riwayat(me,false)}`;
 }
@@ -312,7 +367,6 @@ function addClass(){
 }
 function delClass(d,id){S.sched[me][d]=(S.sched[me][d]||[]).filter(c=>c.id!==id);save();render()}
 
-/* ---------- riwayat: bisa dilihat berdua ---------- */
 function riwayat(u,back){
  const own=u===me,m={},ph=S.photos['avatar-'+u];
  S.money[u].tx.forEach(x=>{const k=x.d.slice(0,7);m[k]=m[k]||{in:0,out:0};m[k][x.k]+=x.a});
@@ -375,6 +429,11 @@ function icsDownload(){
 function settings(){
  const s=S.set,p=S.photos['avatar-'+me];
  return `<div class="cols">
+ <div class="card"><h2>Instal Aplikasi</h2>
+  <p class="muted">Pasang aplikasi ke perangkat agar tampil sebagai aplikasi tersendiri dan notifikasi berjalan lancar.</p>
+  <button id="install-btn" style="display:none;width:100%;margin-top:8px" onclick="installApp()">${ic('plus',16)} Install Aplikasi ke HP</button>
+  <p class="muted" id="install-hint" style="margin-top:6px;font-size:12px">Jika tombol tidak muncul, buka menu browser (titik tiga di kanan atas) lalu pilih <b>"Tambahkan ke Layar Utama"</b> atau <b>"Instal Aplikasi"</b>.</p>
+ </div>
  <div class="card"><h2>Foto profil</h2><div class="row"><div class="av xl">${p?`<img src="${p}">`:NAMES[me][0]}</div><button class="ghost" onclick="pickAvatar()">${ic('plus',16)} Ganti foto</button></div></div>
  <div class="card"><h2>${ic('bell')} Notifikasi</h2>
   <label class="muted">Pengingat setelah jadwal selesai (menit)</label><input id="sd" type="number" value="${s.delay}">
@@ -388,6 +447,19 @@ function settings(){
  </div>
  </div>`;
 }
+
+function installApp(){
+ if(deferredPrompt){
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(choiceResult=>{
+   if(choiceResult.outcome==='accepted'){toast('Terima kasih sudah menginstal!')}
+   deferredPrompt=null;
+  });
+ }else{
+  toast('Silakan gunakan menu browser -> Tambahkan ke Layar Utama');
+ }
+}
+
 function saveSet(){S.set={...S.set,delay:Math.max(0,Number($('#sd').value)||30),repeat:Math.max(5,Number($('#sr').value)||60),nightTime:$('#sn').value||'21:00'};save();toast('Pengaturan tersimpan')}
 function askNotif(){
  try{Notification.requestPermission().then(p=>toast(p==='granted'?'Notifikasi aktif':'Notifikasi ditolak di browser')).catch(()=>toast('Browser tidak mengizinkan notifikasi di sini'))}
@@ -462,7 +534,6 @@ function notify(title,body,onClick){
 }
 function toast(m){const el=document.createElement('div');el.className='toast';el.textContent=m;$('#toasts').prepend(el);setTimeout(()=>el.remove(),3000)}
 
-/* pengecekan berkala: hari spesial, pengingat jadwal (30 menit setelah selesai, ulang tiap 1 jam), dan pengingat catat keuangan malam */
 function tick(){
  if(!me)return;
  const d=new Date(),t=d.getHours()*60+d.getMinutes(),today=ymd(d),wd=d.getDay();
