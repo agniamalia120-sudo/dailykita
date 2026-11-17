@@ -209,10 +209,11 @@ function push(path,body){
  const b=JSON.parse(JSON.stringify(body));
  Q[path]=(Q[path]||Promise.resolve()).then(()=>DB.doc(path).set(b)).catch(e=>toast('Gagal menyimpan ('+(e.code||'coba lagi')+')'));
 }
-function cache(){try{localStorage.setItem(KEY,JSON.stringify({...S,photos:undefined}))}catch(e){}}
+// DIPERBAIKI: Foto sekarang ikut disimpan di cache lokal HP agar tidak hilang saat refresh
+function cache(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function save(){cache();push('app/'+me,userDoc())}
 function saveShared(){cache();push('app/shared',{wish:S.wish,todo:S.todo,events:S.events})}
-function setPhoto(key,d){S.photos[key]=d;if(DB)push('photos/'+key,{data:d});render()}
+function setPhoto(key,d){S.photos[key]=d;cache();if(DB)push('photos/'+key,{data:d});render();toast('Foto disimpan');}
 function syncErr(e){if(!syncShown){syncShown=true;toast('Sinkronisasi terputus ('+(e.code||'coba lagi')+')')}}
 function softRender(){const a=document.activeElement;if(a&&a.closest&&a.closest('#view')&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){pend=true;return}render()}
 document.addEventListener('focusout',()=>{if(pend){pend=false;setTimeout(render,80)}},true);
@@ -229,7 +230,7 @@ function subscribe(){
   if(!s.metadata.fromCache){ready['app/'+u]=true;if(u===me&&!inboxAsked){inboxAsked=true;askInbox()}}
   softRender();
  },syncErr));
- DB.collection('photos').onSnapshot(s=>{s.docs.forEach(d=>{const v=d.exists&&d.data();if(v&&v.data)S.photos[d.id.replace(/^/,'')]=v.data});softRender()},syncErr);
+ DB.collection('photos').onSnapshot(s=>{s.docs.forEach(d=>{const v=d.exists&&d.data();if(v&&v.data)S.photos[d.id.replace(/^/,'')]=v.data});cache();softRender()},syncErr);
  let msgInit=false,mc=false;
  DB.collection('msgs').where('to','==',me).onSnapshot(s=>{
   s.docChanges().forEach(c=>{
