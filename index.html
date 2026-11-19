@@ -7,8 +7,42 @@
 <!-- PWA & Mobile Meta -->
 <meta name="theme-color" content="#e8457a">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Diary Kita">
+<script>
+/* Manifest + ikon dibuat langsung dari index.html (tanpa file terpisah) */
+var ICON192='',ICON512='';
+(function(){
+ try{
+  var heart=new Path2D('M32 56C12 42 4 33 4 20 4 11 11 5 19 5c5 0 9.5 3 13 7 3.5-4 8-7 13-7 8 0 15 6 15 15 0 13-8 22-28 36z');
+  function mk(sz){
+   var c=document.createElement('canvas');c.width=c.height=sz;var x=c.getContext('2d');
+   x.fillStyle='#ffd6e5';x.fillRect(0,0,sz,sz);
+   var k=sz*0.7/64;x.save();x.translate(sz*0.15,sz*0.17);x.scale(k,k);
+   x.fillStyle='#e8457a';x.fill(heart);
+   x.fillStyle='#fff';
+   x.beginPath();x.ellipse(22,29,2.6,3.2,0,0,7);x.fill();
+   x.beginPath();x.ellipse(42,29,2.6,3.2,0,0,7);x.fill();
+   x.strokeStyle='#fff';x.lineWidth=2.4;x.lineCap='round';
+   x.beginPath();x.moveTo(28,38);x.quadraticCurveTo(32,41.5,36,38);x.stroke();
+   x.restore();
+   return c.toDataURL('image/png');
+  }
+  ICON192=mk(192);ICON512=mk(512);
+  var base=location.href.split('#')[0].split('?')[0];
+  var scope=new URL('./',base).href;
+  var man={name:'Diary Kita',short_name:'DiaryKita',start_url:base,scope:scope,display:'standalone',
+   background_color:'#ffd6e5',theme_color:'#e8457a',
+   icons:[{src:ICON192,sizes:'192x192',type:'image/png',purpose:'any'},{src:ICON512,sizes:'512x512',type:'image/png',purpose:'any'}]};
+  var l=document.createElement('link');l.rel='manifest';
+  l.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/manifest+json'}));
+  document.head.appendChild(l);
+  var i1=document.createElement('link');i1.rel='icon';i1.type='image/png';i1.href=ICON192;document.head.appendChild(i1);
+  var i2=document.createElement('link');i2.rel='apple-touch-icon';i2.href=ICON192;document.head.appendChild(i2);
+ }catch(e){}
+})();
+</script>
 <!-- Firebase SDK (Compat) -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -153,24 +187,8 @@ const I={
 const ic=(n,w=18)=>`<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
 const mascot=w=>`<svg width="${w}" height="${w*.94}" viewBox="0 0 64 60" aria-hidden="true"><path style="fill:var(--c)" d="M32 56C12 42 4 33 4 20 4 11 11 5 19 5c5 0 9.5 3 13 7 3.5-4 8-7 13-7 8 0 15 6 15 15 0 13-8 22-28 36z"/><ellipse cx="22" cy="29" rx="2.6" ry="3.2" fill="#fff"/><ellipse cx="42" cy="29" rx="2.6" ry="3.2" fill="#fff"/><path d="M28 38q4 3.5 8 0" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="16" cy="36" r="3" fill="#fff" opacity=".45"/><circle cx="48" cy="36" r="3" fill="#fff" opacity=".45"/></svg>`;
 
-/* PWA Setup */
-const svgIconData = 'data:image/svg+xml;utf8,<svg width="512" height="480" viewBox="0 0 64 60" xmlns="http://www.w3.org/2000/svg"><path style="fill:%23e8457a" d="M32 56C12 42 4 33 4 20 4 11 11 5 19 5c5 0 9.5 3 13 7 3.5-4 8-7 13-7 8 0 15 6 15 15 0 13-8 22-28 36z"/><ellipse cx="22" cy="29" rx="2.6" ry="3.2" fill="%23fff"/><ellipse cx="42" cy="29" rx="2.6" ry="3.2" fill="%23fff"/><path d="M28 38q4 3.5 8 0" stroke="%23fff" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="16" cy="36" r="3" fill="%23fff" opacity=".45"/><circle cx="48" cy="36" r="3" fill="%23fff" opacity=".45"/></svg>';
-
-const manifestObj = {
-  name: "Diary Kita",
-  short_name: "DiaryKita",
-  start_url: "./",
-  display: "standalone",
-  background_color: "#ffd6e5",
-  theme_color: "#e8457a",
-  icons: [{ src: svgIconData, sizes: "512x512", type: "image/svg+xml" }]
-};
-const mBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
-const mLink = document.createElement('link');
-mLink.rel = 'manifest';
-mLink.href = URL.createObjectURL(mBlob);
-document.head.appendChild(mLink);
-
+/* PWA: manifest & ikon dibuat inline di <head>. Service worker wajib file terpisah (sw.js) */
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
@@ -178,12 +196,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
   const btn = $('#install-btn');
   if(btn) btn.style.display = 'inline-flex';
 });
-
-if ('serviceWorker' in navigator) {
-  const swCode = `self.addEventListener('fetch', function(e) {});`;
-  const swBlob = new Blob([swCode], { type: 'application/javascript' });
-  navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
-}
 
 /* suara */
 let AC;
@@ -199,7 +211,10 @@ function fresh(){return{wish:[],todo:[],events:[],photos:{},sched:{agni:{},latif
 let S=fresh();
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY))||{})}catch(e){}
 const allTasks=()=>Object.values(S.tasks).flat();
-let me=localStorage.getItem(ME),view='home',subTab='diari',riwU=null,hDay=new Date().getDay(),tdDay=hDay,txType='out',askCtx=null,calY=new Date().getFullYear(),calMo=new Date().getMonth(),selDay=ymd();
+let me=localStorage.getItem(ME),view='home',subTab='diari',riwU=null,hDay=new Date().getDay(),txType='out',askCtx=null,calY=new Date().getFullYear(),calMo=new Date().getMonth(),selDay=ymd();
+let tdDate=ymd();
+/* to-do harian per tanggal: S.daily[u] = {items:[{id,s,t,from,to}], done:{'YYYY-MM-DD':{id:true}}} */
+const dl=u=>{const d=S.daily[u]=S.daily[u]||{};if(!Array.isArray(d.items))d.items=[];if(!d.done||typeof d.done!=='object')d.done={};return d};
 if(!USERS[me])me=null;
 let DB=null,subbed=false,ready={},Q={},pend=false,inboxAsked=false,syncShown=false;
 
@@ -257,14 +272,14 @@ async function initDB(){
 /* ---------- login ---------- */
 function login(){
  const u=$('#lu').value.trim().toLowerCase(),p=$('#lp').value;
- if(USERS[u]&&USERS[u]===p){me=u;localStorage.setItem(ME,u);try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(e){}start();if(DB&&!subbed)subscribe()}
+ if(USERS[u]&&USERS[u]===p){me=u;localStorage.setItem(ME,u);start();if(DB&&!subbed)subscribe()}
  else $('#lerr').textContent='Username atau password salah';
 }
 function logout(){localStorage.removeItem(ME);location.reload()}
 function start(){
  document.documentElement.dataset.u=me;$('#login').hidden=true;$('#app').hidden=false;
  $('#hello').innerHTML=mascot(24)+' Halo, '+NAMES[me];
- view='home';hDay=new Date().getDay();tdDay=hDay;render();tick();
+ view='home';hDay=new Date().getDay();tdDate=ymd();render();tick();
  setTimeout(()=>{if(!inboxAsked){inboxAsked=true;askInbox()}},5000);
 }
 
@@ -319,7 +334,9 @@ function diari(){
  const u=me,wd=new Date().getDay();
  const inn=sum(S.money[u].tx,'in'),out=sum(S.money[u].tx,'out');
  const today=(S.sched[u][wd]||[]).map(c=>`<div class="item"><span class="grow">${esc(c.n)}</span><span class="tag">${c.s}–${c.e}</span></div>`).join('')||'<p class="muted">Tidak ada jadwal hari ini</p>';
- const routine=(S.daily[u][tdDay]||[]).slice().sort((a,b)=>a.s.localeCompare(b.s)).map(r=>`<div class="item"><input type="checkbox" ${r.d?'checked':''} onchange="togRoutine('${r.id}',${tdDay})"><span class="tag">${r.s}</span><span class="grow" style="${r.d?'text-decoration:line-through;color:#aaa':''}">${esc(r.t)}</span><button class="del" onclick="delRoutine('${r.id}',${tdDay})">${ic('x',14)}</button></div>`).join('')||'<p class="muted">Belum ada to-do di hari ini</p>';
+ const dd=dl(u);
+ const routine=dd.items.filter(r=>showR(r,tdDate)).sort((a,b)=>a.s.localeCompare(b.s)).map(r=>{const dn=!!(dd.done[tdDate]&&dd.done[tdDate][r.id]);return `<div class="item"><input type="checkbox" ${dn?'checked':''} onchange="togRoutine('${r.id}')"><span class="tag">${r.s}</span><span class="grow" style="${dn?'text-decoration:line-through;color:#aaa':''}">${esc(r.t)}</span><button class="del" onclick="delRoutine('${r.id}')">${ic('x',14)}</button></div>`}).join('')||'<p class="muted">Belum ada to-do di tanggal ini</p>';
+ const tdLabel=DAYS[new Date(tdDate+'T00:00').getDay()]+(tdDate===ymd()?' · hari ini':'');
  const tasks=S.tasks[u].filter(x=>!x.done).sort((a,b)=>(a.due||'').localeCompare(b.due||'')).map(x=>`<div class="item"><input type="checkbox" onchange="doneTask('${x.id}')"><div class="grow"><b>${esc(x.n)}</b> ${x.course?`<span class="tag">${esc(x.course)}</span>`:''}<div class="muted">${esc(x.desc)}</div><div class="muted">Deadline ${x.due?x.due.replace('T',' '):'belum diisi'}</div></div></div>`).join('')||'<p class="muted">Tidak ada tugas yang belum selesai</p>';
  const all=ORDER.map(d=>(S.sched[u][d]||[]).map(c=>`<div class="item"><span class="grow"><span class="tag">${SHORT[d]}</span> ${esc(c.n)}</span><span class="muted">${c.s}–${c.e}</span><button class="del" onclick="delClass(${d},'${c.id}')">${ic('x',14)}</button></div>`).join('')).join('');
  return `<div class="cols">
@@ -332,9 +349,11 @@ function diari(){
  </div>
  <div class="card"><h2>${ic('cal')} Jadwal hari ini</h2>${today}</div>
  <div class="card"><h2>${ic('check')} To-do harian</h2>
-  <div class="chips">${ORDER.map(d=>`<button class="chip ${d===tdDay?'on':''}" onclick="tdDay=${d};render()">${SHORT[d]}</button>`).join('')}</div>
+  <div class="row" style="margin-bottom:6px"><button class="ghost" onclick="moveTd(-1)">${ic('left',16)}</button><b style="text-align:center;font-size:14px">${wkLabel()}</b><button class="ghost" onclick="moveTd(1)">${ic('right',16)}</button></div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px">${tdChips()}</div><p class="muted">${tdLabel}</p>
   ${routine}
   <div class="row" style="margin-top:10px"><input id="rs" type="time" value="07:00" style="max-width:120px"><input id="rt" placeholder="Mau ngapain?"><button onclick="addRoutine()">${ic('plus',16)}</button></div>
+  <label class="muted" style="display:flex;gap:6px;align-items:center;margin-top:6px"><input id="rr" type="checkbox"> Ulangi tiap hari ${DAYS[new Date(tdDate+'T00:00').getDay()]}</label>
  </div>
  <div class="card"><h2>${ic('check')} Deadline tugas</h2>${tasks}<button class="ghost" style="width:100%;margin-top:10px" onclick="openTask('')">${ic('plus',16)} Tambah tugas</button></div>
  <div class="card full"><h2>${ic('sliders')} Atur jadwal ${JOB[u]}</h2>${all||'<p class="muted">Belum ada jadwal</p>'}
@@ -349,14 +368,30 @@ function addTx(){
  save();render();toast(txType==='in'?'Pemasukan dicatat':'Pengeluaran dicatat');
 }
 function delTx(id){S.money[me].tx=S.money[me].tx.filter(x=>x.id!==id);save();render()}
+
+/* to-do harian per tanggal */
+function moveTd(n){const[y,m,d]=tdDate.split('-').map(Number);tdDate=ymd(new Date(y,m-1,d+n*7));render()}
+function wkDates(s){const[y,m,d]=s.split('-').map(Number),o=(new Date(y,m-1,d).getDay()+6)%7;return Array.from({length:7},(_,i)=>ymd(new Date(y,m-1,d-o+i)))}
+function wkLabel(){const w=wkDates(tdDate),f=x=>x.slice(8)+'/'+x.slice(5,7);return f(w[0])+' – '+f(w[6])}
+function tdChips(){return wkDates(tdDate).map(x=>{const dt=new Date(x+'T00:00');return `<button class="chip ${x===tdDate?'on':''}" style="padding:6px 0;line-height:1.3" onclick="tdDate='${x}';render()">${SHORT[dt.getDay()]}<br><b>${dt.getDate()}</b></button>`}).join('')}
+/* to-do: sekali (di tanggalnya saja) atau rep='w' = berulang tiap minggu di hari yang sama */
+function showR(r,date){
+ if(r.rep!=='w')return r.from===date;
+ return new Date(date+'T00:00').getDay()===new Date(r.from+'T00:00').getDay()&&r.from<=date&&(!r.to||date<r.to);
+}
 function addRoutine(){
  const t=$('#rt').value.trim(),s=$('#rs').value;
  if(!t||!s)return toast('Isi jam dan kegiatannya');
- (S.daily[me][tdDay]=S.daily[me][tdDay]||[]).push({id:uid(),s,t,d:false});
+ dl(me).items.push({id:uid(),s,t,from:tdDate,to:null,rep:$('#rr')&&$('#rr').checked?'w':''});
  save();render();
 }
-function togRoutine(id,day){const r=(S.daily[me][day]||[]).find(x=>x.id===id);if(r)r.d=!r.d;save();render()}
-function delRoutine(id,day){S.daily[me][day]=(S.daily[me][day]||[]).filter(x=>x.id!==id);save();render()}
+function togRoutine(id){const dn=dl(me).done;const o=dn[tdDate]=dn[tdDate]||{};o[id]=!o[id];save();render()}
+function delRoutine(id){
+ const d=dl(me),r=d.items.find(x=>x.id===id);if(!r)return;
+ if(r.rep!=='w'||r.from>=tdDate)d.items=d.items.filter(x=>x.id!==id);else r.to=tdDate;
+ save();render();
+}
+
 function doneTask(id){const x=S.tasks[me].find(y=>y.id===id);if(x){x.done=true;x.doneAt=ymd()}save();render();toast('Masuk ke riwayat')}
 function addClass(){
  const n=$('#cn').value.trim(),d=$('#cd').value,s=$('#cs').value,e=$('#ce').value;
@@ -431,7 +466,7 @@ function settings(){
  return `<div class="cols">
  <div class="card"><h2>Instal Aplikasi</h2>
   <p class="muted">Pasang aplikasi ke perangkat agar tampil sebagai aplikasi tersendiri dan notifikasi berjalan lancar.</p>
-  <button id="install-btn" style="display:none;width:100%;margin-top:8px" onclick="installApp()">${ic('plus',16)} Install Aplikasi ke HP</button>
+  <button id="install-btn" style="display:${deferredPrompt?'inline-flex':'none'};width:100%;margin-top:8px" onclick="installApp()">${ic('plus',16)} Install Aplikasi ke HP</button>
   <p class="muted" id="install-hint" style="margin-top:6px;font-size:12px">Jika tombol tidak muncul, buka menu browser (titik tiga di kanan atas) lalu pilih <b>"Tambahkan ke Layar Utama"</b> atau <b>"Instal Aplikasi"</b>.</p>
  </div>
  <div class="card"><h2>Foto profil</h2><div class="row"><div class="av xl">${p?`<img src="${p}">`:NAMES[me][0]}</div><button class="ghost" onclick="pickAvatar()">${ic('plus',16)} Ganti foto</button></div></div>
@@ -440,6 +475,8 @@ function settings(){
   <label class="muted">Ulangi pengingat tiap (menit)</label><input id="sr" type="number" value="${s.repeat}">
   <label class="muted">Ingatkan catat keuangan jam</label><input id="sn" type="time" value="${s.nightTime}">
   <div class="row" style="margin-top:8px"><button onclick="saveSet()">Simpan</button><button class="ghost" onclick="askNotif()">Aktifkan notif HP</button></div>
+  <button class="ghost" style="width:100%;margin-top:8px" onclick="testNotif()">Tes notifikasi</button>
+  <p class="muted" style="margin-top:8px;font-size:12px">Agar muncul pop-up di layar HP: Pengaturan HP → Aplikasi → Chrome (atau Diary Kita) → Notifikasi → pilih kategori situs ini → atur ke <b>Mendesak / Muncul sebagai pop-up</b>, lalu nyalakan <b>Suara dan getar</b>.</p>
  </div>
  <div class="card"><h2>${ic('bell')} Jenis notifikasi</h2>${NTYPES.map(([k,l])=>`<label class="row" style="padding:8px 0;justify-content:space-between"><span>${l}</span><input type="checkbox" ${on(k)?'checked':''} onchange="togType('${k}')"></label>`).join('')}
  </div>
@@ -462,8 +499,17 @@ function installApp(){
 
 function saveSet(){S.set={...S.set,delay:Math.max(0,Number($('#sd').value)||30),repeat:Math.max(5,Number($('#sr').value)||60),nightTime:$('#sn').value||'21:00'};save();toast('Pengaturan tersimpan')}
 function askNotif(){
- try{Notification.requestPermission().then(p=>toast(p==='granted'?'Notifikasi aktif':'Notifikasi ditolak di browser')).catch(()=>toast('Browser tidak mengizinkan notifikasi di sini'))}
- catch(e){toast('Browser ini tidak mendukung notifikasi')}
+ if(!('Notification' in window))return toast('Browser ini tidak mendukung notifikasi');
+ const st=Notification.permission;
+ if(st==='granted')return toast('Notifikasi sudah aktif');
+ if(st==='denied')return toast('Diblokir. Ubah di pengaturan situs browser');
+ Notification.requestPermission().then(p=>toast(p==='granted'?'Notifikasi aktif':p==='denied'?'Diblokir. Ubah di pengaturan situs browser':'Prompt ditutup, coba lagi'));
+}
+function testNotif(){
+ if(!('Notification' in window))return toast('Browser ini tidak mendukung notifikasi');
+ if(Notification.permission!=='granted')return toast('Aktifkan notifikasi dulu (tekan "Aktifkan notif HP")');
+ if('serviceWorker' in navigator)navigator.serviceWorker.getRegistration().then(r=>{if(!r)toast('sw.js belum aktif. Pastikan sw.js ada di folder yang sama lalu buka ulang aplikasi')});
+ notify('Tes notifikasi','Halo '+NAMES[me]+', notifikasi berhasil!');
 }
 function pickAvatar(){pick(d=>setPhoto('avatar-'+me,d))}
 function pickBooth(si,pi){pick(d=>setPhoto(`booth-${si}-${pi}`,d))}
@@ -559,9 +605,22 @@ function notify(title,body,onClick){
  $('#toasts').prepend(el);
  setTimeout(()=>el.remove(),60000);
  chime();
- try{if('Notification' in window&&Notification.permission==='granted'){const n=new Notification(title,{body,requireInteraction:true,tag:title+Date.now()});n.onclick=()=>{window.focus();n.close();onClick&&onClick()};setTimeout(()=>n.close(),60000)}}catch(e){}
+ try{
+  if('Notification' in window&&Notification.permission==='granted'){
+   const opt={body,requireInteraction:true,silent:false,vibrate:[250,100,250,100,250],tag:title+Date.now(),icon:ICON192,badge:ICON192};
+   const direct=()=>{try{const n=new Notification(title,opt);n.onclick=()=>{window.focus();n.close();onClick&&onClick()};setTimeout(()=>n.close(),60000)}catch(e){}};
+   // Pakai service worker hanya jika sudah ada yang aktif (sw.js opsional)
+   if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistration().then(r=>r?r.showNotification(title,opt):direct()).catch(direct);
+   }else direct();
+  }
+ }catch(e){}
 }
-function toast(m){const el=document.createElement('div');el.className='toast';el.textContent=m;$('#toasts').prepend(el);setTimeout(()=>el.remove(),3000)}
+function toast(m){
+ [...document.querySelectorAll('#toasts .toast')].forEach(e=>{if(e.textContent===m)e.remove()});
+ const el=document.createElement('div');el.className='toast';el.textContent=m;
+ $('#toasts').prepend(el);setTimeout(()=>el.remove(),3000);
+}
 
 function tick(){
  if(!me)return;
@@ -589,16 +648,16 @@ function tick(){
   const dueTime=new Date(x.due).getTime();
   const now=Date.now();
   const diffMin=(dueTime-now)/60000;
-  
+
   if(diffMin<=120 && diffMin>=-1440){
    const k='taskdue|'+x.id;
    const st=S.seen[k]||(S.seen[k]={});
    if(st.ans==='yes')return;
-   
+
    const repeatMin=30;
    if(st.last && now-st.last < repeatMin*60000)return;
    st.last=now;changed=true;
-   
+
    const timeInfo=diffMin>0?`Deadline dalam ${Math.round(diffMin)} menit`:'Deadline sudah tiba/terlewati!';
    notify('Pengingat Deadline Tugas', `Tugas "${x.n}" (${x.course||'Umum'}). ${timeInfo}. Ketuk untuk cek status.`, ()=>openTaskStatusModal(x.id,k));
   }
@@ -609,7 +668,7 @@ function tick(){
   ns.last=Date.now();changed=true;
   notify('Catat keuanganmu','Hari ini belum ada catatan pengeluaran atau pemasukan.',()=>go('diari'));
  }
- 
+
  if(changed)save();
 }
 
